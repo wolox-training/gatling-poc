@@ -2,8 +2,6 @@ package simulation
 
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
-
-import scala.util
 import scala.util.Random
 
 
@@ -26,13 +24,14 @@ class Naiofy extends Simulation {
       .feed(registerFeeder)
       .exec(http("Register")
       .post("/users")
-      .body(StringBody("""{"email": "${email}","password": "${password}", "firstName": "${firstName}", "lastName": "${lastName}"}""")).asJson
+        .body(StringBody("""{"email": "${email}","password": "${password}", "firstName": "${firstName}", "lastName": "${lastName}"}""")).asJson
       .check(status is 201))
 
     .exec(http("Login")
       .post("/users/sessions")
-      .body(RawFileBody("src/test/resources/bodies/Login.json")).asJson
+      .body(StringBody("""{"email": "${email}","password": "${password}"}""")).asJson
       .check(header("Authorization").saveAs("token"))
+      .check(jsonPath("$.user_id").find.saveAs("userId"))
       .check(status is 200))
 
     .exec(http("User list")
@@ -54,7 +53,7 @@ class Naiofy extends Simulation {
     )
 
     .exec(http("User albums")
-      .get("/users/1616/albums")
+      .get("/users/" + "${userId}" + "/albums")
       .header(name = "Authorization", value = "${token}")
       .check(status is 200)
     )
@@ -65,5 +64,5 @@ class Naiofy extends Simulation {
       .check(status is 200)
     )
 
-  setUp(scn.inject(atOnceUsers(1)).protocols(httpProtocol))
+  setUp(scn.inject(atOnceUsers(3)).protocols(httpProtocol))
 }
